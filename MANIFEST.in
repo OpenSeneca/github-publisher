@@ -1,0 +1,5 @@
+include README.md
+include LICENSE
+include QUICKSTART.md
+include requirements.txt
+recursive-include github_publisher *.py

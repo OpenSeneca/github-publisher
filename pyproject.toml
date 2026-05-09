@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "github-publisher"
+version = "1.0.0"
+description = "Package and publish OpenSeneca tools to PyPI and GitHub"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "OpenSeneca Squad", email = "squad@openseneca.org"}
+]
+keywords = ["github", "publish", "pypi", "open-seneca", "packaging"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Version Control :: Git",
+]
+dependencies = [
+    "requests>=2.31.0",
+]
+
+[project.scripts]
+github-publisher = "github_publisher:main"
+
+[project.urls]
+Homepage = "https://github.com/OpenSeneca/github-publisher"
+Repository = "https://github.com/OpenSeneca/github-publisher"
+Issues = "https://github.com/OpenSeneca/github-publisher/issues"

@@ -1,3 +1,35 @@
+Metadata-Version: 2.4
+Name: github-publisher
+Version: 1.0.0
+Summary: Package and publish OpenSeneca tools to PyPI and GitHub
+Home-page: https://github.com/OpenSeneca/github-publisher
+Author: OpenSeneca Squad
+Author-email: OpenSeneca Squad <squad@openseneca.org>
+License: MIT
+Project-URL: Homepage, https://github.com/OpenSeneca/github-publisher
+Project-URL: Repository, https://github.com/OpenSeneca/github-publisher
+Project-URL: Issues, https://github.com/OpenSeneca/github-publisher/issues
+Keywords: github,publish,pypi,open-seneca,packaging
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: Topic :: Software Development :: Version Control :: Git
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: requests>=2.31.0
+Dynamic: author
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-python
+
 # GitHub Publisher
 
 Package and publish OpenSeneca tools to PyPI and GitHub.
