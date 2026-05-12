@@ -31,12 +31,13 @@ WORKSPACE_DIR = Path.home() / ".openclaw" / "workspace" / "tools"
 KNOWN_TOOLS = [
     "squad-ssh-manager",
     "squad-deployer",
-    "squad-content-pipeline",
+    "content-pipeline",
     "squad-activity-digest",
     "blog-assistant",
     "auto-ingester",
     "squad-config-validator",
     "squad-tool-deployer",
+    "github-publisher",
 ]
 
 
@@ -104,6 +105,31 @@ class GitHubPublisher:
                         status["version"] = version_match.group(1)
             except Exception:
                 pass
+
+        # Check for pyproject.toml (used by modern Python projects)
+        if (tool_path / "pyproject.toml").exists():
+            status["has_setup"] = True
+            # Extract version from pyproject.toml if not already found
+            if status["version"] is None:
+                try:
+                    import tomllib
+                    with open(tool_path / "pyproject.toml", 'rb') as f:
+                        config = tomllib.load(f)
+                        if "project" in config and "version" in config["project"]:
+                            status["version"] = config["project"]["version"]
+                except ImportError:
+                    # Fallback for Python <3.11
+                    try:
+                        with open(tool_path / "pyproject.toml", 'r') as f:
+                            for line in f:
+                                match = re.match(r'^version\s*=\s*["\']([^"\']+)["\']', line)
+                                if match:
+                                    status["version"] = match.group(1)
+                                    break
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
 
         # Check for dist directory
         dist_dir = tool_path / "dist"
