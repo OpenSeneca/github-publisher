@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: github-publisher
-Version: 1.0.0
+Version: 1.1.0
 Summary: Package and publish OpenSeneca tools to PyPI and GitHub
 Home-page: https://github.com/OpenSeneca/github-publisher
 Author: OpenSeneca Squad
@@ -31,116 +31,202 @@ Dynamic: requires-python
 
 # GitHub Publisher
 
-Package and publish OpenSeneca tools to PyPI and GitHub.
+CLI tool for publishing OpenSeneca tools to PyPI and setting up GitHub repositories.
 
-## What It Does
+**v1.1.0** - Dynamically discovers all tools, batch build/publish modes
 
-The GitHub Publisher automates the release process for OpenSeneca tools:
+## Installation
 
-1. **Validates** the tool has proper packaging structure (setup.py, README.md, etc.)
-2. **Builds** Python distributions (wheel + sdist)
-3. **Publishes** to PyPI using twine
-4. **Pushes** to GitHub repository
-5. **Creates** GitHub release with version tag
+```bash
+cd ~/.openclaw/workspace/tools/github-publisher
+pip install -e .
+```
+
+Or install from GitHub:
+```bash
+pip install git+https://github.com/OpenSeneca/github-publisher.git
+```
 
 ## Usage
 
+### List all available tools
+
 ```bash
-# Full publish (PyPI + GitHub + release)
-python3 main.py content-pipeline
-
-# Skip PyPI, only push to GitHub
-python3 main.py content-pipeline --skip-pypi
-
-# Skip GitHub, only publish to PyPI
-python3 main.py content-pipeline --skip-github
-
-# Skip release creation
-python3 main.py content-pipeline --skip-release
+github-publisher --list-tools
+# or
+python3 main.py --list-tools
 ```
 
-## Requirements
+This dynamically discovers all Python packages in the tools directory (requires setup.py or pyproject.toml).
 
-### Tool Requirements
-The tool being published must have:
-- `setup.py` or `pyproject.toml` with package metadata
-- `README.md` with usage instructions
-- Git repository with remote origin
+### Set up GitHub repository for a tool
 
-### System Requirements
-- Python 3.8+
-- `build` package: `pip install build`
-- `twine` package: `pip install twine`
-- `gh` CLI (optional, for GitHub releases)
-- PyPI credentials (in `~/.pypirc` or environment variables)
-
-## Setup
-
-### PyPI Credentials
-
-Option 1: Using `~/.pypirc`
 ```bash
-cat > ~/.pypirc << 'EOF'
-[pypi]
-username = __token__
-password = pypi-<your-token>
-EOF
+github-publisher --tool squad-deployer --setup-github
 ```
 
-Option 2: Using environment variables
+This will:
+- Initialize git repository if needed
+- Add GitHub remote (https://github.com/OpenSeneca/{tool}.git)
+- Print instructions for creating the repository on GitHub
+
+### Build distribution packages
+
 ```bash
-export TWINE_USERNAME=__token__
-export TWINE_PASSWORD=pypi-<your-token>
+github-publisher --tool squad-deployer --build
 ```
 
-### Install Dependencies
+This builds both wheel and source distribution.
+
+### Build ALL tools (batch mode)
+
 ```bash
-pip install build twine gh  # gh is optional
+# Build all tools, skip already built ones
+github-publisher --build-all
+
+# Rebuild everything even if dist files exist
+github-publisher --build-all --rebuild
 ```
 
-## Example Workflow
+### Publish to PyPI
 
-1. **Prepare your tool** for publishing:
-   - Ensure `setup.py` or `pyproject.toml` exists
-   - Add/Update `README.md`
-   - Commit all changes to git
+```bash
+github-publisher --tool squad-deployer --publish
+```
 
-2. **Run the publisher**:
+For testing, publish to Test PyPI first:
+
+```bash
+github-publisher --tool squad-deployer --publish --test-pypi
+```
+
+### Publish ALL tools (batch mode)
+
+```bash
+# Publish all built tools to production PyPI
+github-publisher --publish-all
+
+# Publish all to Test PyPI
+github-publisher --publish-all --test-pypi
+```
+
+### Complete workflow (single tool)
+
+```bash
+# 1. Setup GitHub repository
+github-publisher --tool squad-deployer --setup-github
+
+# 2. Build packages
+github-publisher --tool squad-deployer --build
+
+# 3. Publish to Test PyPI (for testing)
+github-publisher --tool squad-deployer --publish --test-pypi
+
+# 4. Publish to production PyPI
+github-publisher --tool squad-deployer --publish
+```
+
+### Complete workflow (batch mode)
+
+```bash
+# Build all tools
+github-publisher --build-all
+
+# Publish all to Test PyPI
+github-publisher --publish-all --test-pypi
+
+# Publish all to production PyPI
+github-publisher --publish-all
+```
+
+## Prerequisites
+
+### For publishing to PyPI:
+
+1. Install required packages:
    ```bash
-   cd ~/.openclaw/workspace/tools/github-publisher
-   python3 main.py your-tool-name
+   pip install build twine
    ```
 
-3. **Install your tool**:
+2. Configure PyPI authentication (one-time setup):
+
+   Option A: Using API token (recommended):
    ```bash
-   pip install squad-content-pipeline  # Example
+   # Create ~/.pypirc
+   cat > ~/.pypirc << 'EOF'
+   [pypi]
+   username = __token__
+   password = <your-pypi-token>
+
+   [testpypi]
+   username = __token__
+   password = <your-testpypi-token>
+   EOF
+   chmod 600 ~/.pypirc
    ```
 
-## Error Handling
+   Option B: Using keyring (more secure):
+   ```bash
+   pip install keyring
+   keyring set https://upload.pypi.org/legacy/ __token__
+   # Enter your PyPI API token when prompted
+   ```
 
-The tool will stop on critical errors but continue on non-critical ones:
+### For GitHub:
 
-- **Critical** (stops execution):
-  - Tool directory not found
-  - Missing `setup.py` or `README.md`
-  - Build failure
-  - Git push failure
+1. Create a GitHub personal access token with `repo` scope
+2. Configure git credentials:
+   ```bash
+   git config --global credential.helper store
+   git config --global user.name "OpenSeneca Squad"
+   git config --global user.email "squad@openseneca.org"
+   ```
 
-- **Non-critical** (warns and continues):
-  - PyPI publish failure (continues to GitHub push)
-  - GitHub release creation failure
-  - Uncommitted changes (auto-commits)
+## Features
 
-## Current Projects
+- ✅ **Dynamic tool discovery** - Automatically finds all Python packages in tools directory
+- ✅ **Batch operations** - Build and publish all tools at once
+- ✅ List all OpenSeneca tools with their status
+- ✅ Set up GitHub repositories (git init, remote add)
+- ✅ Build distribution packages (wheel + sdist)
+- ✅ Publish to PyPI (production or test)
+- ✅ Version detection from setup.py and pyproject.toml
+- ✅ Status checking (setup.py, dist, git, remote)
+- ✅ Skip already-built tools in batch mode
+- ✅ Verbose logging for debugging
 
-Ready to publish:
-- ✅ `content-pipeline` - Content Pipeline CLI for Seneca
-- ✅ `axon-ingester` - Auto-Ingester for Axon
+## Supported Tools
 
-## Deployment
+Tools are dynamically discovered from the tools directory. Run `github-publisher --list-tools` to see all available packages.
 
-Local use only. No cron job needed - run manually when ready to publish.
+Any directory in `~/.openclaw/workspace/tools/` that contains a `setup.py` or `pyproject.toml` file will be automatically detected.
 
----
+## Troubleshooting
 
-*Created by Archimedes (Engineering) on 2026-05-08*
+### "No distribution packages found"
+Run `--build` first to create the packages.
+
+### "twine is not installed"
+Install it with: `pip install twine build`
+
+### "403 Forbidden" when publishing
+Check that your PyPI token is valid and has correct permissions.
+
+### "Repository not found" when pushing
+Create the repository on GitHub first: https://github.com/new
+
+## License
+
+MIT License - see LICENSE file for details.
+
+## Version
+
+**v1.1.0** - 2026-05-15
+- Added dynamic tool discovery (no more hardcoded lists)
+- Added --build-all batch mode
+- Added --publish-all batch mode
+- Added --rebuild flag to force rebuilds
+- Improved filtering (skips archived directories starting with _)
+- Support for both setup.py and pyproject.toml
+
+**v1.0.0** - Initial release

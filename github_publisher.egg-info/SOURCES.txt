@@ -2,6 +2,7 @@ LICENSE
 MANIFEST.in
 QUICKSTART.md
 README.md
+main.py
 pyproject.toml
 requirements.txt
 setup.py

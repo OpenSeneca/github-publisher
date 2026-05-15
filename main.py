@@ -28,23 +28,43 @@ from typing import List, Dict, Optional
 WORKSPACE_DIR = Path.home() / ".openclaw" / "workspace" / "tools"
 
 # Known OpenSeneca tools that can be published
-KNOWN_TOOLS = [
-    "squad-ssh-manager",
-    "squad-deployer",
-    "content-pipeline",
-    "squad-activity-digest",
-    "blog-assistant",
-    "auto-ingester",
-    "squad-config-validator",
-    "squad-tool-deployer",
-    "github-publisher",
-]
+# Dynamically discovered from workspace/tools directory
+KNOWN_TOOLS = []
 
 
 class GitHubPublisher:
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
         self.workspace_dir = WORKSPACE_DIR
+        # Dynamically discover available tools
+        self._discover_tools()
+
+    def _discover_tools(self):
+        """Dynamically discover all Python packages in the tools directory."""
+        global KNOWN_TOOLS
+        if not self.workspace_dir.exists():
+            self.log(f"Workspace directory not found: {self.workspace_dir}")
+            return
+
+        discovered = []
+        for item in self.workspace_dir.iterdir():
+            # Skip hidden directories and non-directories
+            if not item.is_dir() or item.name.startswith('.'):
+                continue
+            # Skip archived directories (start with underscore)
+            if item.name.startswith('_'):
+                self.log(f"Skipping archived tool: {item.name}")
+                continue
+
+            # Check if it's a Python package (has setup.py or pyproject.toml)
+            has_setup = (item / "setup.py").exists() or (item / "pyproject.toml").exists()
+            if has_setup:
+                discovered.append(item.name)
+                self.log(f"Discovered tool: {item.name}")
+
+        # Sort for consistent output
+        KNOWN_TOOLS = sorted(discovered)
+        self.log(f"Total tools discovered: {len(KNOWN_TOOLS)}")
 
     def log(self, message: str):
         """Print log message if verbose."""
@@ -65,9 +85,16 @@ class GitHubPublisher:
             self.log(f"STDERR: {result.stderr}")
         return result.returncode, result.stdout, result.stderr
 
-    def list_tools(self) -> List[Dict[str, str]]:
-        """List all available tools with their status."""
+    def list_tools(self, include_all: bool = False) -> List[Dict[str, str]]:
+        """List all available tools with their status.
+
+        Args:
+            include_all: If True, include all Python packages (not just KNOWN_TOOLS)
+        """
         tools = []
+        # Re-discover tools to get fresh list
+        self._discover_tools()
+
         for tool_name in KNOWN_TOOLS:
             tool_path = self.workspace_dir / tool_name
             if tool_path.exists():
@@ -183,6 +210,32 @@ class GitHubPublisher:
         print(f"✓ Successfully built {tool_name}")
         return True
 
+    def build_all(self, skip_existing: bool = True) -> Dict[str, bool]:
+        """Build all discovered tools.
+
+        Args:
+            skip_existing: If True, skip tools that already have dist files
+
+        Returns:
+            Dict mapping tool names to build success status
+        """
+        self._discover_tools()
+        results = {}
+        for tool_name in KNOWN_TOOLS:
+            tool_path = self.workspace_dir / tool_name
+            dist_dir = tool_path / "dist"
+
+            # Skip if already built and skip_existing is True
+            if skip_existing and dist_dir.exists() and list(dist_dir.glob("*.whl")):
+                print(f"Skipping {tool_name} (already built)")
+                results[tool_name] = True
+                continue
+
+            print(f"\n{'='*60}")
+            results[tool_name] = self.build_package(tool_name)
+
+        return results
+
     def publish_to_pypi(self, tool_name: str, test_pypi: bool = False) -> bool:
         """Publish a tool to PyPI."""
         tool_path = self.workspace_dir / tool_name
@@ -224,6 +277,32 @@ class GitHubPublisher:
 
         print(f"✓ Successfully published {tool_name} to {'Test' if test_pypi else 'PyPI'}")
         return True
+
+    def publish_all(self, test_pypi: bool = False) -> Dict[str, bool]:
+        """Publish all discovered tools to PyPI.
+
+        Args:
+            test_pypi: If True, publish to Test PyPI instead of production
+
+        Returns:
+            Dict mapping tool names to publish success status
+        """
+        self._discover_tools()
+        results = {}
+        for tool_name in KNOWN_TOOLS:
+            tool_path = self.workspace_dir / tool_name
+            dist_dir = tool_path / "dist"
+
+            # Skip tools without distribution files
+            if not dist_dir.exists() or not list(dist_dir.glob("*.whl")):
+                print(f"Skipping {tool_name} (no distribution files)")
+                results[tool_name] = False
+                continue
+
+            print(f"\n{'='*60}")
+            results[tool_name] = self.publish_to_pypi(tool_name, test_pypi=test_pypi)
+
+        return results
 
     def setup_github_repo(self, tool_name: str) -> bool:
         """Set up GitHub repository for a tool."""
@@ -287,9 +366,19 @@ def main():
         help="Build distribution packages"
     )
     parser.add_argument(
+        "--build-all",
+        action="store_true",
+        help="Build all discovered tools"
+    )
+    parser.add_argument(
         "--publish", "-p",
         action="store_true",
         help="Publish to PyPI"
+    )
+    parser.add_argument(
+        "--publish-all",
+        action="store_true",
+        help="Publish all discovered tools to PyPI"
     )
     parser.add_argument(
         "--test-pypi",
@@ -305,6 +394,11 @@ def main():
         "--verbose", "-v",
         action="store_true",
         help="Verbose output"
+    )
+    parser.add_argument(
+        "--rebuild",
+        action="store_true",
+        help="Rebuild even if dist files exist (for --build-all)"
     )
 
     args = parser.parse_args()
@@ -325,6 +419,40 @@ def main():
             print(f"  Git: {'✓' if tool['has_git'] else '✗'}")
             print(f"  Remote: {'✓' if tool['has_remote'] else '✗'}")
         return 0
+
+    # Build all tools
+    if args.build_all:
+        print(f"Building all discovered tools (skip_existing={not args.rebuild})...")
+        results = publisher.build_all(skip_existing=not args.rebuild)
+        print(f"\n{'='*60}")
+        print("Build Summary:")
+        success_count = sum(1 for v in results.values() if v)
+        fail_count = sum(1 for v in results.values() if not v)
+        print(f"  Success: {success_count}")
+        print(f"  Failed: {fail_count}")
+        if fail_count > 0:
+            print("\nFailed tools:")
+            for tool, success in results.items():
+                if not success:
+                    print(f"  - {tool}")
+        return 0 if fail_count == 0 else 1
+
+    # Publish all tools
+    if args.publish_all:
+        print(f"Publishing all discovered tools to {'Test' if args.test_pypi else 'PyPI'}...")
+        results = publisher.publish_all(test_pypi=args.test_pypi)
+        print(f"\n{'='*60}")
+        print("Publish Summary:")
+        success_count = sum(1 for v in results.values() if v)
+        fail_count = sum(1 for v in results.values() if not v)
+        print(f"  Success: {success_count}")
+        print(f"  Failed: {fail_count}")
+        if fail_count > 0:
+            print("\nFailed tools:")
+            for tool, success in results.items():
+                if not success:
+                    print(f"  - {tool}")
+        return 0 if fail_count == 0 else 1
 
     # Require --tool for other operations
     if not args.tool:

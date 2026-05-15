@@ -10,7 +10,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="github-publisher",
-    version="1.0.0",
+    version="1.1.0",
     author="OpenSeneca Squad",
     description="CLI tool for publishing OpenSeneca tools to PyPI and GitHub",
     long_description=long_description,
