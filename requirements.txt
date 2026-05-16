@@ -1,7 +1,0 @@
-# GitHub Publisher Requirements
-# No external dependencies required - uses Python standard library only
-# GitHub CLI (gh) must be installed separately and authenticated
-
-# Optional: for development
-# black>=23.0.0
-# pytest>=7.0.0
