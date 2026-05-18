@@ -1,5 +1,5 @@
 """
-GitHub Publisher v1.0.0
+GitHub Publisher v1.1.0
 Setup configuration
 """
 
@@ -12,10 +12,10 @@ long_description = (this_directory / "README.md").read_text(encoding='utf-8')
 
 setup(
     name='github-publisher',
-    version='1.0.0',
+    version='1.1.0',
     author='OpenSeneca',
     author_email='dev@openseneca.org',
-    description='Automate building and publishing squad tools to GitHub and PyPI',
+    description='Automate building and publishing squad tools to GitHub and PyPI with org sync',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/OpenSeneca/github-publisher',

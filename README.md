@@ -1,6 +1,6 @@
-# GitHub Publisher v1.0.0
+# GitHub Publisher v1.1.0
 
-Automates building and publishing squad tools to GitHub releases and PyPI.
+Automates building and publishing squad tools to GitHub releases, PyPI, and OpenSeneca organization.
 
 ## Features
 
@@ -11,6 +11,9 @@ Automates building and publishing squad tools to GitHub releases and PyPI.
 - **PyPI publishing**: Uploads packages to PyPI with token or .pypirc authentication
 - **Metadata extraction**: Reads version and description from setup.py/pyproject.toml
 - **Git status checking**: Shows uncommitted changes when listing tools
+- **Ready-to-publish checks**: Validates tools have version, README, and LICENSE before publishing
+- **Org sync**: Sync tools to OpenSeneca GitHub organization
+- **Packaging**: Create portable packages for distribution
 
 ## Installation
 
@@ -24,6 +27,11 @@ pip install -e .
 
 ```bash
 github-publisher list
+```
+
+List only tools ready to publish:
+```bash
+github-publisher list --ready-only
 ```
 
 With verbose output:
@@ -59,6 +67,28 @@ github-publisher publish --token pypi-xxx
 github-publisher release
 ```
 
+### Sync tools to OpenSeneca organization
+
+```bash
+github-publisher sync
+```
+
+Sync specific tools:
+```bash
+github-publisher sync content-pipeline squad-disk-monitor
+```
+
+### Package tools for distribution
+
+```bash
+github-publisher package
+```
+
+Package specific tools:
+```bash
+github-publisher package --output-dir /tmp/packages content-pipeline
+```
+
 ## Commands
 
 | Command | Description |
@@ -67,6 +97,8 @@ github-publisher release
 | `build` | Build distribution packages for tools |
 | `publish` | Publish packages to PyPI |
 | `release` | Create GitHub releases from tags |
+| `sync` | Sync tools to OpenSeneca GitHub organization |
+| `package` | Create portable packages for distribution |
 
 ## How It Works
 
@@ -75,6 +107,16 @@ github-publisher release
 The publisher scans `~/.openclaw/workspace/tools/` for directories containing:
 - `setup.py` OR `pyproject.toml`
 - Not in ignored list (archive, node_modules, __pycache__)
+
+### Ready-to-Publish Checks
+
+A tool is considered ready to publish when it has:
+- Version defined in setup.py or pyproject.toml
+- Git repository initialized
+- README.md file
+- LICENSE file
+
+Only tools that pass these checks are synced to the organization or included in package output.
 
 ### Building
 
@@ -96,6 +138,21 @@ For each tool:
 2. Pushes tag to origin
 3. Creates GitHub release using `gh release create`
 4. Auto-generates release notes
+
+### Org Sync
+
+1. Checks if repository exists in OpenSeneca organization
+2. Creates repository if it doesn't exist
+3. Sets up remote `origin` to point to org repository
+4. Pushes to GitHub (main or master branch)
+
+Only tools that pass ready-to-publish checks are synced.
+
+### Packaging
+
+1. Creates a portable tar.gz package for each tool
+2. Includes: main.py, setup.py, pyproject.toml, README.md, LICENSE, install.sh
+3. Packages are saved to `_packages/` directory by default
 
 ## Requirements
 
